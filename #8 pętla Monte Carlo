@@ -1,0 +1,135 @@
+#zad1
+install.packages("maxLik")
+library("maxLik")
+install.packages("tseries")
+library("tseries")
+
+N = 10000
+N.iter = 10000
+
+wektor.stat.test = rep(NA, times = N.iter)
+
+for(i in 1:N.iter){
+  #generuje N-elementowa probke danych
+  probka = rnorm(n=N, mean=0, sd=1) 
+  #wykonuje test JB
+  wynik = jarque.bera.test(x=probka)
+  #zapisuje wartosc stat.testowej
+  wektor.stat.test[i] = wynik$statistic
+}
+
+hist(wektor.stat.test)
+
+hist(wektor.stat.test, nclass=50)
+
+ks.test(x=wektor.stat.test, "pchisq",2)
+
+#zatem nasza probka pochodzi z rozkladu normalnego
+
+#zad 2
+
+N = 20
+N.iter = 1000
+
+wynik.wnioskowania = rep(NA,times=N.iter)
+
+for(i in 1:N.iter){
+  #generuje N-elementowa probke danych
+  dane = rnorm(n=N, mean=0, sd=1) 
+  #wykonuje test JB
+  wynik = jarque.bera.test(x=dane)
+  #zapisuje wynik
+  wynik.wnioskowania[i] = (wynik$p.value>=0.05)
+}
+#liczba nie odrzucen prawdziwej h0:
+
+sum(wynik.wnioskowania)
+
+#976 nie odrzucilismy
+#błąd I rodzaju = liczba odrzucen prawdziwej h0 to:
+N.iter - sum(wynik.wnioskowania)
+
+#błąd pierwszego rodzaju:
+(N.iter-sum(wynik.wnioskowania))/N.iter
+#2.4% ->> zbyt rzadko odrzucamy h0 powinna być równa alpha = 5%
+
+#zad 3
+#b) MOC TESTU = 1-P(błąd II rodzaju)
+#błąd II rodzaju -> nieodrzucenie fałszywej H0: test JB wskazuje na normlanosc danych (podczas gdy są z rozkładu t-Studenta)
+N = 1000
+N.iter = 10000
+
+wektor.stat.test = rep(NA, times = N.iter)
+
+for(i in 1:N.iter){
+  #generuje N-elementowa probke danych z rozkładu t-Studenta
+  dane = rt(n=N, df=3) 
+  #wykonuje test JB
+  wynik = jarque.bera.test(x=dane)
+  #zapisuje wartosc stat.testowej
+  wektor.stat.test[i] = (wynik$p.value>=0.05)
+}
+(blad.2.rodzaju = sum(wektor.stat.test)/N.iter)
+#moc testu:
+1-blad.2.rodzaju
+#nie myli się nigdy, dla mniejszego N zdarza sie odrzucac
+ks.test(dane, "pnorm",2)
+
+#zatem nasza probka nie pochodzi z rozkladu normalnego
+
+#zad 5
+N=1000
+N.iter=1000
+
+wektor.oszacowan = rep(NA, times = N.iter)
+
+#f. wiarygodnoisci
+
+lnL = function(lambda){
+  ll = N*log(lambda) - lambda*sum(dane)
+  return(ll)
+}
+
+#petla MOnte Carlo
+
+for(i in 1:N.iter){
+  #generuje N-elementowa probke danych
+  dane = rexp(n=N, rate=1/10) 
+  #szacuje parametr lambda za pomoca mnw
+  wynik = maxNR(fn = lnL, start=0.5)
+  #zapisuje oszacowanie
+  wektor.oszacowan[i] = (wynik$estimate)
+}
+
+hist(wektor.oszacowan)
+abline(v=1/10,col="red")
+
+mean(wektor.oszacowan)
+
+#zad 9
+N=100
+N.iter=1000
+
+wektor.b1= rep(NA, times = N.iter)
+
+beta0=1
+beta1=2
+beta2=-1
+
+#petla MOnte Carlo
+
+for(i in 1:N.iter){
+  #generuje N-elementowa probke danych
+  x = rnorm(n=N, mean = 0,sd=1)
+  z = rchisq(n=N,df=3)
+  epsilon = rnorm(n=N, mean=0,sd=1/10)#błąd losowy
+  y=beta0+beta1*x+beta2*z+epsilon
+  #model MNK
+  model=lm(y~x+z)
+  #zapisuje oszacowanie
+  wektor.b1[i] = (model$coefficients[1])
+}
+
+hist(wektor.b1)
+abline(v=beta1,col="red")
+
